@@ -1,0 +1,10 @@
+{
+  "name": "@kiruse/sg-mintbuilder-sdk",
+  "version": "1.0.0",
+  "description": "JS SDK for interacting with the MintBuilder Stargaze Minter smart contracts from both frontend and backend.",
+  "main": "index.js",
+  "repository": "https://github.com/kiruse/sg-mintbuilder-sdk.git",
+  "author": "Kiruse",
+  "license": "Apache-2.0",
+  "private": false
+}
