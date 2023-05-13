@@ -1,16 +1,11 @@
-# Build results
-/target
-/schema
+node_modules
+.env
+coverage
+coverage.json
+typechain
+typechain-types
 
-# Cargo+Git helper file (https://github.com/rust-lang/cargo/blob/0.44.1/src/cargo/sources/git/utils.rs#L320-L327)
-.cargo-ok
+# Hardhat files
+cache
+artifacts
 
-# Text file backups
-**/*.rs.bk
-
-# macOS
-.DS_Store
-
-# IDEs
-*.iml
-.idea
