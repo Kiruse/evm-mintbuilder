@@ -11,7 +11,7 @@ contract MintBuilderNFT is ERC721 {
   }
   
   modifier onlyMinter() {
-    require(msg.sender == minter, "MBNFT::UNAUTHORIZED");
+    require(msg.sender == minter, "MBNFT1::UNAUTHORIZED");
     _;
   }
   
