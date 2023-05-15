@@ -1,13 +1,8 @@
-# Sample Hardhat Project
+# EVM MintBuilder Contracts
+Contains the Solidity smart contracts, unit tests, and deployment script for EVM MintBuilder.
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+## Running Unit Tests
+Unit Tests are non-standard; do not run `npx hardhat test`. Instead, run `npm run test` or `yarn test`. This is because the unit tests have some additional setup and are written in CoffeeScript.
 
-Try running some of the following tasks:
-
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.ts
-```
+## Deploying
+Deployment script has not yet been written. Once they've been written, deploy the contracts with `npm run deploy` or `yarn deploy`.
