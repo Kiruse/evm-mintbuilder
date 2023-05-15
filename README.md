@@ -1,5 +1,5 @@
-# Stargaze MintBuilder
-*MintBuilder* is a custom minter for [Stargaze](https://www.stargaze.zone). It consists of a 3-part system of frontend, backend, and smart contracts.
+# EVM MintBuilder
+*MintBuilder* is a custom minter for [Ethereum VM blockchains](https://ethereum.org). It consists of a 3-part system: frontend + backend written in TypeScript, and smart contracts written in Solidity. *MintBuilder* is written to be relatively easily portable to non-EVM chains as well.
 
 A user of *MintBuilder* can mint a customized NFT with chosen traits - given this exact configuration of traits hasn't already been chosen. This is accomplished in 4 relatively simple steps:
 
