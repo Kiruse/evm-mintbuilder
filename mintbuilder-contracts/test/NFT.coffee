@@ -21,16 +21,33 @@ describe 'NFT', ->
     [alice, bob] = await ethers.getSigners()
     {nft} = await loadFixture fixture
     
-    await nft.mint alice.address, 1, 'http://localhost:8080/foo.json'
+    await nft.mint alice.address, 1
+    await nft.setMetadata 1, 'foo.json'
     expect(nft.ownerOf 1).to.eventually.equal alice.address
-    expect(nft.tokenURI 1).to.eventually.equal 'http://localhost:8080/foo.json'
+    expect(nft.tokenURI 1).to.eventually.equal 'foo.json'
     
-    await nft.mint bob.address, 2, 'http://localhost:8080/bar.json'
+    await nft.mint bob.address, 2
+    await nft.setMetadata 2, 'bar.json'
     expect(nft.ownerOf 2).to.eventually.equal bob.address
-    expect(nft.tokenURI 2).to.eventually.equal 'http://localhost:8080/bar.json'
+    expect(nft.tokenURI 2).to.eventually.equal 'bar.json'
     
-    await expect(nft.connect(bob).mint bob.address, 3, 'http://localhost:8080/baz.json')
+    await expect(nft.connect(bob).mint bob.address, 3)
       .to.be.revertedWith 'MBNFT1::UNAUTHORIZED'
+    await expect(nft.ownerOf 3).to.be.revertedWith 'ERC721: invalid token ID'
+  
+  it 'prevents re-assigning metadata', ->
+    [alice, bob] = await ethers.getSigners()
+    {nft} = await loadFixture fixture
+    
+    await nft.mint alice.address, 1
+    await nft.setMetadata 1, 'foo.json'
+    await expect(nft.setMetadata 1, 'bar.json').to.be.revertedWith 'MBNFT1::ALREADY_SET'
+    expect(nft.tokenURI 2).to.eventually.equal 'foo.json'
+    
+    await nft.mint bob.address, 2
+    await nft.setMetadata 2, 'bar.json'
+    await expect(nft.setMetadata 2, 'baz.json').to.be.revertedWith 'MBNFT1::ALREADY_SET'
+    expect(nft.tokenURI 2).to.eventually.equal 'bar.json'
   
   it 'transfers ownership', ->
     [alice, bob] = await ethers.getSigners()
