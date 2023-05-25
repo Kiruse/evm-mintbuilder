@@ -4,7 +4,8 @@
   "repository": "https://github.com/kiruse/evm-mintbuilder.git",
   "license": "ISC",
   "scripts": {
-    "test": "mocha --require ts-node/register --require coffeescript/register test/**/*.coffee --timeout 10000"
+    "test": "mocha --require ts-node/register --require coffeescript/register test/**/*.coffee --timeout 10000",
+    "deploy": "hardhat deploy"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.3"
@@ -20,7 +21,9 @@
     "@types/chai": "^4.3.5",
     "@types/mocha": "^10.0.1",
     "chai": "^4.3.7",
+    "chalk": "^5.2.0",
     "coffeescript": "^2.7.0",
+    "dotenv": "^16.0.3",
     "hardhat": "^2.14.0",
     "hardhat-gas-reporter": "^1.0.9",
     "mocha": "^10.2.0",
