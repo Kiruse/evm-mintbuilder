@@ -183,6 +183,16 @@ contract MintBuilder {
   }
   
   /**
+   * Because the MintBuilder is the minter of the NFT contract instances, we need this proxy method
+   * to trigger it to update the metadata on the given NFT. This only works if the NFT does not yet
+   * have a metadata URL.
+   */
+  function setMetadata(uint256 tokenId, string calldata url) onlyAdmin external {
+    Event storage e = _getEvent();
+    MintBuilderNFT(e.nft).setMetadata(tokenId, url);
+  }
+  
+  /**
    * This method is called when the permissioned backend fails or refuses to mint the NFT
    * corresponding to this commitment. This can happen when the desired trait combination has
    * already been minted, or is invalid altogether.
@@ -242,6 +252,9 @@ contract MintBuilder {
   }
   function isAvailable(string[] calldata traits) external view returns (bool) {
     return !_getEvent().minted[_getTraitsHash(traits)];
+  }
+  function getNFTContract() external view returns (address) {
+    return _getEvent().nft;
   }
   function getParamsCID() external view returns (string memory) {
     return _getEvent().paramsCID;

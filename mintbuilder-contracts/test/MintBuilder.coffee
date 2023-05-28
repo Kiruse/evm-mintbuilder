@@ -17,11 +17,13 @@ describe 'MintBuilder', ->
     TestToken = await ethers.getContractFactory 'TestToken'
     token = await TestToken.deploy()
     
+    NFTContract = await ethers.getContractFactory 'MintBuilderNFT'
+    
     [alice, bob] = await ethers.getSigners()
     await token.transfer bob.address, 25
-    return {minter, token}
+    return {minter, token, NFTContract}
   fixtureEvent = (getToken = none) ->
-    {minter} = fix = await loadFixture fixtureBase
+    {minter, NFTContract} = fix = await loadFixture fixtureBase
     token = getToken fix
     
     traits = [
@@ -42,8 +44,10 @@ describe 'MintBuilder', ->
     await create minter, 25, token, traitLimits
     await commit minter.connect(alice), commitmentAlice, 25, token
     await commit minter.connect(bob),   commitmentBob,   25, token
+    nft = await NFTContract.attach minter.getNFTContract()
     return {
       fix...,
+      nft,
       feeToken: token,
       traits,
       alice:
@@ -136,7 +140,7 @@ describe 'MintBuilder', ->
   
   describe 'mint', ->
     it "mints", ->
-      {minter, alice, bob} = await loadFixture fixtureNative
+      {minter, alice, bob, nft} = await loadFixture fixtureNative
       
       await expect(minter.mint alice.commitment, Object.values(alice.traits))
         .to.emit(minter, 'Mint').withArgs(alice.address, 1, 1)
@@ -147,6 +151,16 @@ describe 'MintBuilder', ->
         .to.emit(minter, 'Mint').withArgs(bob.address, 1, 2)
       await expect(minter.mint bob.commitment, Object.values(bob.traits))
         .to.be.revertedWith 'MB1::COMMITMENT_NOT_FOUND'
+      
+      await expect(nft.setMetadata 1, 'ipfs://bafybonk').to.be.revertedWith 'MBNFT1::UNAUTHORIZED'
+      
+      await minter.setMetadata 1, 'ipfs://bafyfoo'
+      expect(nft.tokenURI 1).to.eventually.equals 'ipfs://bafyfoo'
+      
+      await minter.setMetadata 2, 'ipfs://bafybar'
+      expect(nft.tokenURI 2).to.eventually.equals 'ipfs://bafybar'
+      
+      await expect(minter.setMetadata 2, 'ipfs://bafybaz').to.be.revertedWith 'MBNFT1::ALREADY_SET'
     it "prevents double-mint", ->
       {minter, alice, bob, traits} = await loadFixture fixtureNative
       
