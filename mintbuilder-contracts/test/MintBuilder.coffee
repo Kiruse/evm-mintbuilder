@@ -67,6 +67,7 @@ describe 'MintBuilder', ->
     {minter} = await loadFixture fixtureBase
     expect(minter.admin()).to.eventually.equals alice.address
     expect(minter.eventId()).to.eventually.equals 0
+    expect(minter.getParamsCID()).to.eventually.equals 'bafyfoobar'
     expect(minter.isERC20Mint(0)).to.eventually.be.false
     expect(minter.isMintActive()).to.eventually.be.false
     await expect(minter["commit(uint256)"](1)).to.be.revertedWith 'MB1::MINT_INACTIVE'
@@ -77,14 +78,14 @@ describe 'MintBuilder', ->
     minterBob = minter.connect bob
     
     # unauthorized
-    await expect(minterBob.create('foo', 'bar', Addr0, 0, 0, 0, [])).to.be.revertedWith 'MB1::UNAUTHORIZED'
+    await expect(minterBob.create('foo', 'bar', '', Addr0, 0, 0, 0, [])).to.be.revertedWith 'MB1::UNAUTHORIZED'
     
     # event 1
-    await expect(minter.create 'Test NFT', 'TNFT', Addr0, 0, 0, 0, []).to.emit(minter, 'CreateEvent').withArgs(1)
+    await expect(minter.create 'Test NFT', 'TNFT', '', Addr0, 0, 0, 0, []).to.emit(minter, 'CreateEvent').withArgs(1)
     expect(minter.eventId()).to.eventually.equals 1
     
     # event 2
-    await expect(minter.create 'Test NFT 2', 'TNFT2', Addr0, 0, 0, 0, []).to.emit(minter, 'CreateEvent').withArgs(2)
+    await expect(minter.create 'Test NFT 2', 'TNFT2', '', Addr0, 0, 0, 0, []).to.emit(minter, 'CreateEvent').withArgs(2)
     expect(minter.eventId()).to.eventually.equals 2
   
   it 'takes commitments', ->
@@ -93,13 +94,13 @@ describe 'MintBuilder', ->
     [minterAlice, minterBob] = connectContract minter, alice, bob
     
     # event 1
-    await expect(minter.create 'Test NFT', 'TNFT', Addr0, 0, 0, 0, []).to.emit(minter, 'CreateEvent').withArgs(1)
+    await expect(minter.create 'Test NFT', 'TNFT', '', Addr0, 0, 0, 0, []).to.emit(minter, 'CreateEvent').withArgs(1)
     await expect(commit minterAlice, 1).to.emit(minter, 'Commitment').withArgs(alice.address, 1, 1)
     await expect(commit minterBob, 1).to.be.revertedWith 'MB1::COMMITMENT_EXISTS'
     await expect(commit minterBob, 2).to.emit(minter, 'Commitment').withArgs(bob.address, 1, 2)
     
     # event 2
-    await expect(minter.create 'Test NFT 2', 'TNFT2', Addr0, 0, 0, 0, []).to.emit(minter, 'CreateEvent').withArgs(2)
+    await expect(minter.create 'Test NFT 2', 'TNFT2', '', Addr0, 0, 0, 0, []).to.emit(minter, 'CreateEvent').withArgs(2)
     expect(minter.eventId()).to.eventually.equals 2
     
     await expect(commit minterAlice, 1).to.emit(minter, 'Commitment').withArgs(alice.address, 2, 1)
@@ -245,7 +246,7 @@ describe 'MintBuilder', ->
     await expect(commit minterAlice, 1).to.be.revertedWith 'MB1::MINT_INACTIVE'
     await expect(commit minterBob, 1).to.be.revertedWith 'MB1::MINT_INACTIVE'
 
-create = (minter, fee, token, traitLimits) => minter.create 'Test NFT', 'TNFT', token?.address or Addr0, fee, 0, 0, traitLimits
+create = (minter, fee, token, traitLimits) => minter.create 'Test NFT', 'TNFT', 'bafyfoobar', token?.address or Addr0, fee, 0, 0, traitLimits
 commit = (minter, hash, value, token) =>
   account = minter.signer
   if token

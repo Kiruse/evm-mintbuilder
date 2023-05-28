@@ -13,6 +13,8 @@ contract MintBuilder {
   struct Event {
     /** Unique ID of this event. */
     uint64 id;
+    /** IPFS CID of the mint event parameters JSON */
+    string paramsCID;
     /** MintBuilderNFT token contract */
     address nft;
     /** Token to be used for minting fees. If `address(0)`, native coin / ETH is used. */
@@ -76,6 +78,7 @@ contract MintBuilder {
   function create(
     string calldata name,
     string calldata symbol,
+    string calldata _paramsCID,
     address _feeToken,
     uint256 _feeAmount,
     uint256 _startTime,
@@ -88,6 +91,7 @@ contract MintBuilder {
     
     Event storage e = _getEvent();
     e.id = eventId;
+    e.paramsCID = _paramsCID;
     e.nft = address(new MintBuilderNFT(name, symbol, address(this)));
     e.feeToken = _feeToken;
     e.feeAmount = _feeAmount;
@@ -238,6 +242,9 @@ contract MintBuilder {
   }
   function isAvailable(string[] calldata traits) external view returns (bool) {
     return !_getEvent().minted[_getTraitsHash(traits)];
+  }
+  function getParamsCID() external view returns (string memory) {
+    return _getEvent().paramsCID;
   }
   function _getEvent() internal view returns (Event storage) {
     return events[eventId];
