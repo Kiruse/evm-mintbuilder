@@ -234,14 +234,20 @@ contract MintBuilder {
   function _validateTraits(string[] memory traits) internal {
     Event storage e = _getEvent();
     for (uint i = 0; i < traits.length; ++i) {
-      require(e.traitCounts[traits[i]] > 0, "MB1::TRAIT_MINTED_OUT");
-      e.traitCounts[traits[i]] -= 1;
+      // supports "infinite" i.e. -1 minting capacity for a trait
+      require(e.traitCounts[traits[i]] != 0, "MB1::TRAIT_MINTED_OUT");
+      if (e.traitCounts[traits[i]] > 0)
+        e.traitCounts[traits[i]] -= 1;
     }
   }
   
   /** Whether an ERC20 is used for the mint fee. */
   function isERC20Mint(uint64 _eventId) public view returns (bool) {
     return events[_eventId].feeToken != address(0);
+  }
+  /** Whether a mint event is either queued for the future, or currently running. */
+  function isMintQueued() external view returns (bool) {
+    return startTime > block.timestamp || isMintActive();
   }
   function isMintActive() public view returns (bool) {
     if (endTime > 0) {
