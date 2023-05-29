@@ -51,11 +51,11 @@ contract MintBuilder {
    * We use this as ultimate failsafe: if the mint somehow becomes deadlocked we can query the
    * blockchain for this event and `adminRefund` everybody whose mint is still outstanding.
    */
-  event Commitment(address committer, uint64 eventId, uint256 hash);
+  event Commitment(address indexed committer, uint64 indexed eventId, uint256 hash);
   /** A commitment has been refunded. */
-  event Refund(address committer, uint64 eventId, uint256 hash);
+  event Refund(address indexed committer, uint64 indexed eventId, uint256 hash);
   /** An NFT has been successfully minted. */
-  event Mint(address receiver, uint64 eventId, uint256 tokenId, string[] traits);
+  event Mint(address indexed receiver, uint64 indexed eventId, uint256 indexed tokenId, string[] traits);
   
   constructor() {
     admin = msg.sender;
