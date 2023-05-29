@@ -1,6 +1,6 @@
 {
   "polygonTestnet": {
-    "minter": "0x8E1CDcB39c633D96141311cD5eC57d7dD221d7A9",
+    "minter": "0x243C0de20E25F70314de0cd08C95b6c6a5C6D3C8",
     "admin": "0x86a7e17A413d7BFa26D594a98CB63B2ded8Ce450"
   },
   "hardhat": {

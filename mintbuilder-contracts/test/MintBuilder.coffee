@@ -37,8 +37,8 @@ describe 'MintBuilder', ->
       ['foo3',  1], ['bar3',  1], ['baz3',  1],
     ]
     
-    [commitmentAlice, nonceAlice] = createTraitsCommitment traits[1]
-    [commitmentBob,   nonceBob]   = createTraitsCommitment traits[2]
+    [commitmentAlice, nonceAlice] = createTraitsCommitment traits[0]
+    [commitmentBob,   nonceBob]   = createTraitsCommitment traits[1]
     
     [alice, bob] = await ethers.getSigners()
     await create minter, 25, token, traitLimits
@@ -55,13 +55,13 @@ describe 'MintBuilder', ->
         address: alice.address
         commitment: commitmentAlice
         nonce: nonceAlice
-        traits: traits[1]
+        traits: traits[0]
       bob:
         signer: bob
         address: bob.address
         commitment: commitmentBob
         nonce: nonceBob
-        traits: traits[2]
+        traits: traits[1]
     }
   fixtureNative = => fixtureEvent(none)
   fixtureToken  = => fixtureEvent(getFixtureToken)
@@ -143,12 +143,12 @@ describe 'MintBuilder', ->
       {minter, alice, bob, nft} = await loadFixture fixtureNative
       
       await expect(minter.mint alice.commitment, Object.values(alice.traits))
-        .to.emit(minter, 'Mint').withArgs(alice.address, 1, 1)
+        .to.emit(minter, 'Mint').withArgs(alice.address, 1, 1, Object.values(alice.traits))
       await expect(minter.mint alice.commitment, Object.values(alice.traits))
         .to.be.revertedWith 'MB1::COMMITMENT_NOT_FOUND'
       
       await expect(minter.mint bob.commitment, Object.values(bob.traits))
-        .to.emit(minter, 'Mint').withArgs(bob.address, 1, 2)
+        .to.emit(minter, 'Mint').withArgs(bob.address, 1, 2, Object.values(bob.traits))
       await expect(minter.mint bob.commitment, Object.values(bob.traits))
         .to.be.revertedWith 'MB1::COMMITMENT_NOT_FOUND'
       
@@ -193,7 +193,7 @@ describe 'MintBuilder', ->
         await commit minterBob, commits[i], 25
         if success[i]
           await expect(minter.mint commits[i], traits[i])
-            .to.emit(minter, 'Mint').withArgs(bob.address, 1, anyValue)
+            .to.emit(minter, 'Mint').withArgs(bob.address, 1, anyValue, anyValue)
         else
           await expect(minter.mint commits[i], traits[i])
             .to.be.revertedWith 'MB1::TRAIT_MINTED_OUT'
@@ -223,7 +223,7 @@ describe 'MintBuilder', ->
           {minter, alice, bob} = await loadFixture fixture
           [minterAlice, minterBob] = connectContract minter, alice.signer, bob.signer
           
-          await expect(minter.mint bob.commitment, Object.values(bob.traits)).to.emit(minter, 'Mint').withArgs(bob.address, 1, anyValue)
+          await expect(minter.mint bob.commitment, Object.values(bob.traits)).to.emit(minter, 'Mint').withArgs(bob.address, 1, anyValue, anyValue)
           # b/c minted & commitment removed
           await expect(minterBob.refund(  1, bob.commitment)).to.be.revertedWith 'MB1::UNAUTHORIZED'
           await expect(minterAlice.refund(1, bob.commitment)).to.be.revertedWith 'MB1::UNAUTHORIZED'

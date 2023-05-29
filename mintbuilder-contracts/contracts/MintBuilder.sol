@@ -55,7 +55,7 @@ contract MintBuilder {
   /** A commitment has been refunded. */
   event Refund(address committer, uint64 eventId, uint256 hash);
   /** An NFT has been successfully minted. */
-  event Mint(address receiver, uint64 eventId, uint256 tokenId);
+  event Mint(address receiver, uint64 eventId, uint256 tokenId, string[] traits);
   
   constructor() {
     admin = msg.sender;
@@ -179,7 +179,7 @@ contract MintBuilder {
     e.minted[traitsHash] = true;
     e.lastTokenId += 1;
     MintBuilderNFT(e.nft).mint(to, e.lastTokenId);
-    emit Mint(to, eventId, e.lastTokenId);
+    emit Mint(to, eventId, e.lastTokenId, traits);
   }
   
   /**
