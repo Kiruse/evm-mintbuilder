@@ -36,3 +36,10 @@ export class ShouldNotReachError extends MintBuilderBackendError {
     this.name = 'ShouldNotReachError';
   }
 }
+
+export class TraitLimitReachedError extends MintBuilderBackendError {
+  constructor(trait: string) {
+    super(`Trait limit reached for ${trait}`);
+    this.name = 'TraitLimitReachedError';
+  }
+}

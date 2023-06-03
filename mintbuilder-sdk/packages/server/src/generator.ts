@@ -1,5 +1,4 @@
 import { Signer } from '@ethersproject/abstract-signer'
-import { AddressZero } from '@ethersproject/constants'
 import {
   IMintBuilder,
   IMintBuilderNFT,
@@ -17,6 +16,7 @@ import hash from 'object-hash'
 import { CancellationError, DisconnectedError, NotConfiguredError, ShouldNotReachError, TxFailureError } from './errors'
 import { Metadata, MintResult } from './types'
 import { Attribute, Collection, Layer } from './collection'
+import { TraitLimitReachedError } from './errors'
 
 type Traits = Record<string, Attribute>
 
@@ -291,6 +291,7 @@ export default class ArtGenerator {
    */
   async generate(tokenId: bigint, traits: Traits) {
     if (!this.#collection) throw new NotConfiguredError();
+    this.checkLimits(traits);
     
     const _params = { tokenId, traits };
     
@@ -327,9 +328,18 @@ export default class ArtGenerator {
       new Jimp(width, height, async (err, image) => {
         if (err) reject(err);
         
-        const attrs = Object.values(traits).sort((a, b) => a.layer.index - b.layer.index);
-        const traitImages = await Promise.all(Object.values(traits).map(trait => Jimp.read(trait.image)));
+        const retraits = (await Promise.all(
+          Object.values(traits).map(async ({image, ...attr}) => ({
+            ...attr,
+            image: await Jimp.read(image),
+          }))
+        )).sort((a, b) => a.layer.index - b.layer.index);
         
+        for (const trait of retraits) {
+          if (trait.image.getWidth() !== width || trait.image.getHeight() !== height)
+            trait.image.resize(width, height);
+          image.blit(trait.image, ...trait.layer.size);
+        }
         
         const buffer = await image.getBufferAsync(Jimp.MIME_PNG);
         resolve(new Blob([buffer], { type: Jimp.MIME_PNG }));
@@ -354,6 +364,11 @@ export default class ArtGenerator {
     };
     
     return (await this.onGenerateMetadata.emit(params, metadata)).result!;
+  }
+  
+  checkLimits(traits: Traits) {
+    const found = Object.values(traits).find(trait => trait.limit === 0);
+    if (found) throw new TraitLimitReachedError(found.name);
   }
   
   onCreateCollection  = Event.TwoPhase<Collection, CIDString>();
