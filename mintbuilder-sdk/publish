@@ -1,0 +1,8 @@
+#!/bin/bash
+ROOT="$PWD"
+
+if [ "$1" != "" ]; then
+  yarn publish "$ROOT/packages/$1" --access public
+else
+  ./build common && ./build client && ./build server && ./publish common && ./publish client && ./publish server
+fi

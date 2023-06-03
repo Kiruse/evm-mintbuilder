@@ -1,10 +1,14 @@
 {
-  "name": "@kiruse/sg-mintbuilder-sdk",
+  "name": "evm-mintbuilder-sdk",
   "version": "1.0.0",
-  "description": "JS SDK for interacting with the MintBuilder Stargaze Minter smart contracts from both frontend and backend.",
+  "description": "JS SDK for EVM MintBuilder frontend & backend code. Frontend code interfaces with blockchain & smart contracts whilst backend code mints NFTs and deploys to Pinata.",
   "main": "index.js",
-  "repository": "https://github.com/kiruse/sg-mintbuilder-sdk.git",
+  "repository": "https://github.com/kiruse/evm-mintbuilder.git",
   "author": "Kiruse",
   "license": "Apache-2.0",
-  "private": false
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {},
+  "private": true
 }

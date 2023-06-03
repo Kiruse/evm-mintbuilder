@@ -1,0 +1,39 @@
+{
+  "name": "@evm-mintbuilder/server",
+  "version": "0.1.0",
+  "description": "EVM MintBuilder backend code for permissioned minting & uploading of user-configured NFTs",
+  "main": "index.js",
+  "repository": "https://github.com/kiruse/evm-mintbuilder.git",
+  "author": "Kiruse",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "rm -rf dist && tsc && cp package.json dist",
+    "test": "mocha --require coffeescript/register --require source-map-support/register test/**/*.spec.coffee",
+    "pretest": "tsc -b"
+  },
+  "mocha": {
+    "timeout": 10000,
+    "slow": 5000,
+    "recursive": true,
+    "exit": true
+  },
+  "dependencies": {
+    "@evm-mintbuilder/common": "*",
+    "axios": "^1.4.0",
+    "ethers": "^5",
+    "jimp": "^0.22.8",
+    "nft.storage": "^7.0.3",
+    "object-hash": "^3.0.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
+    "@types/mocha": "^10.0.1",
+    "coffeescript": "^2.7.0",
+    "hardhat": "^2.14.1",
+    "mocha": "^10.2.0",
+    "source-map-support": "^0.5.21",
+    "typescript": "^5.0.4"
+  },
+  "private": false
+}

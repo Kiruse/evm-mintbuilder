@@ -1,0 +1,10 @@
+#!/bin/bash
+ROOT="$PWD"
+
+if [ "$1" != "" ]; then
+  cd "$ROOT/packages/$1" && yarn build
+else
+  cd "$ROOT/packages/common" && yarn build
+  cd "$ROOT/packages/client" && yarn build
+  cd "$ROOT/packages/server" && yarn build
+fi

@@ -1,0 +1,19 @@
+{
+  "name": "@evm-mintbuilder/client",
+  "version": "0.1.0",
+  "description": "EVM MintBuilder frontend code for interacting with an on-chain MintBuilder contract and/or the permissioned backend server",
+  "main": "index.js",
+  "repository": "https://github.com/kiruse/evm-mintbuilder.git",
+  "author": "Kiruse",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "rm -rf dist && tsc && cp package.json dist"
+  },
+  "dependencies": {
+    "ethers": "^5"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4"
+  },
+  "private": false
+}
