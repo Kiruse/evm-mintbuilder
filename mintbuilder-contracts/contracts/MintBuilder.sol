@@ -234,9 +234,9 @@ contract MintBuilder {
   function _validateTraits(string[] memory traits) internal {
     Event storage e = _getEvent();
     for (uint i = 0; i < traits.length; ++i) {
-      // supports "infinite" i.e. -1 minting capacity for a trait
-      require(e.traitCounts[traits[i]] != 0, "MB1::TRAIT_MINTED_OUT");
-      if (e.traitCounts[traits[i]] > 0)
+      require(e.traitCounts[traits[i]] > 0, "MB1::TRAIT_MINTED_OUT");
+      // typemax is a special value that means "unlimited"
+      if (e.traitCounts[traits[i]] < type(uint64).max && e.traitCounts[traits[i]] > 0)
         e.traitCounts[traits[i]] -= 1;
     }
   }
