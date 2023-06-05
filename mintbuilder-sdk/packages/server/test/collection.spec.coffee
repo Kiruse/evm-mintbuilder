@@ -1,6 +1,6 @@
 import {expect} from 'chai'
 import {BigNumber} from 'ethers'
-import {Collection} from '../dist/collection.js'
+import {Collection, MINT_INFINITY} from '../dist/collection.js'
 
 describe 'Collection', ->
   it 'adds layers', ->
@@ -35,10 +35,10 @@ describe 'Collection', ->
     expect(Object.entries layer2.attributes).to.have.lengthOf 1
     
     attrs = collection.getAttributes()
-    expect(attrs[0]).to.include {name: 'Attribute A', limit: 10, layer: layer1}
-    expect(attrs[1]).to.include {name: 'Attribute B', limit: 20, layer: layer1}
-    expect(attrs[2]).to.include {name: 'Attribute C', limit:  1, layer: layer1}
-    expect(attrs[3]).to.include {name: 'Attribute D', limit: -1, layer: layer2}
+    expect(attrs[0]).to.deep.include {name: 'Attribute A', layer: layer1, limit: BigNumber.from(10)}
+    expect(attrs[1]).to.deep.include {name: 'Attribute B', layer: layer1, limit: BigNumber.from(20)}
+    expect(attrs[2]).to.deep.include {name: 'Attribute C', layer: layer1, limit: BigNumber.from( 1)}
+    expect(attrs[3]).to.deep.include {name: 'Attribute D', layer: layer2, limit: BigNumber.from(MINT_INFINITY)}
     
     expect(layer1.attributes).to.have.property 'Attribute A'
     expect(layer1.attributes).to.have.property 'Attribute B'

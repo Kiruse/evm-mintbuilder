@@ -15,7 +15,7 @@ import { Blob } from 'nft.storage'
 import hash from 'object-hash'
 import { CancellationError, DisconnectedError, NotConfiguredError, ShouldNotReachError, TxFailureError } from './errors.js'
 import { Metadata, MintResult } from './types.js'
-import { Attribute, Collection, Layer } from './collection.js'
+import { Attribute, Collection, Layer, MINT_INFINITY } from './collection.js'
 import { TraitLimitReachedError } from './errors.js'
 import { tx } from './ethers-helpers.js'
 import { IIPFSStorage, StoreNFTResult } from './storage/interface.js'
@@ -115,8 +115,7 @@ export class Generator {
     // retrieve base config from blockchain + IPFS
     const getBaseConfig = async() => {
       const configCID = await this.#minter!.getParamsCID();
-      const response = await axios.get(`https://${configCID}.ipfs.nftstorage.link`);
-      this.#collection = response.data;
+      this.#collection = Collection.unmarshall(await this.#storage!.loadJson(configCID));
     }
     
     // retrieve minted traits from blockchain
@@ -137,8 +136,8 @@ export class Generator {
         
         // decrement limit of all already minted traits
         for (const trait of traits) {
-          if (trait.limit > 0) {
-            trait.limit -= 1;
+          if (trait.limit.lt(MINT_INFINITY) && trait.limit.gt(0)) {
+            trait.limit = trait.limit.sub(1);
           }
         }
       }
@@ -180,7 +179,12 @@ export class Generator {
   async createMintEvent(collection: Collection) {
     if (!this.#minter) throw new DisconnectedError();
     
-    const cid = await this.#storage!.storeBlob(new Blob([JSON.stringify(collection, null, 2)], {type: 'application/json'}));
+    const cid = await this.#storage!.storeBlob(
+      new Blob(
+        [JSON.stringify(Collection.marshall(collection), null, 2)],
+        {type: 'application/json'}
+      )
+    );
     console.log('collection configuration stored on IPFS at', cid);
     if ((await this.onCreateCollection.before.emit(collection)).canceled) {
       console.info('createCollection cancelled');
@@ -386,7 +390,7 @@ export class Generator {
   }
   
   checkLimits(traits: Traits) {
-    const found = Object.values(traits).find(trait => trait.limit === 0);
+    const found = Object.values(traits).find(trait => trait.limit.eq(0));
     if (found) throw new TraitLimitReachedError(found.name);
   }
   

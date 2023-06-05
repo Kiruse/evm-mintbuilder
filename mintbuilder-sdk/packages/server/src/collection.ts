@@ -6,6 +6,8 @@ import * as path from 'path'
 import type { IIPFSStorage } from './storage/interface.js'
 import type { Vector } from './types.js'
 
+export const MINT_INFINITY = 0xFFFFFFFFFFFFFFFFn;
+
 export class Collection {
   layers: Layer[] = [];
   mutuallyExclusive: Attribute[][] = [];
@@ -110,10 +112,10 @@ export class Layer {
   ) {}
   
   /** Add a new attribute to this layer. */
-  addAttribute(name: string, image: Buffer, limit = -1) {
+  addAttribute(name: string, image: Buffer, limit: bigint | number = Infinity) {
     if (this.collection.hasAttribute(name))
       throw new Error(`Attribute ${name} already exists in collection ${this.collection.name}`);
-    const attr = new Attribute(name, this, image, limit);
+    const attr = new Attribute(name, this, image, BigNumber.from(limit === Infinity ? MINT_INFINITY : limit));
     //@ts-ignore
     this.collection._attrs[name] = attr;
     this.attributes[name] = attr;
@@ -153,7 +155,7 @@ export class Attribute {
     public readonly name: string,
     public readonly layer: Layer,
     public readonly image: Buffer,
-    public limit: number,
+    public limit: BigNumber,
   ) {}
   
   static marshall(attr: Attribute) {
@@ -165,6 +167,6 @@ export class Attribute {
   }
   
   static unmarshall(json: any, layer: Layer) {
-    return new Attribute(json.name, layer, Buffer.from(json.image, 'base64'), json.limit);
+    return new Attribute(json.name, layer, Buffer.from(json.image, 'base64'), BigNumber.from(json.limit));
   }
 }
