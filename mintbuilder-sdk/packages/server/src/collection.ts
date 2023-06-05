@@ -1,10 +1,10 @@
 import { AddressZero } from '@ethersproject/constants'
 import { BigNumber, BigNumberish } from 'ethers'
-import fs from 'fs/promises'
+import * as fs from 'fs/promises'
 import type { CIDString } from 'nft.storage'
-import path from 'path'
-import type { IIPFSStorage } from './storage/interface'
-import type { Vector } from './types'
+import * as path from 'path'
+import type { IIPFSStorage } from './storage/interface.js'
+import type { Vector } from './types.js'
 
 export class Collection {
   layers: Layer[] = [];

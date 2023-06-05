@@ -8,7 +8,6 @@ import type {
   MintBuilderNFT,
   MintBuilderNFTInterface,
 } from "./MintBuilderNFT";
-import { MintBuilder } from "./MintBuilder";
 
 const _abi = [
   {

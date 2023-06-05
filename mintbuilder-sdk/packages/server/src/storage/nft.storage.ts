@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { CIDString, NFTStorage } from 'nft.storage'
-import type { Metadata } from '../types'
-import type { IIPFSStorage } from './interface'
+import type { Metadata } from '../types.js'
+import type { IIPFSStorage } from './interface.js'
 
 export class NFTStorageWrapper implements IIPFSStorage {
   #instance: NFTStorage;
@@ -30,6 +30,10 @@ export class NFTStorageWrapper implements IIPFSStorage {
   }
   
   async loadText(cid: string): Promise<string> {
-    return (await axios.get(`https://${cid}.ipfs.nftstorage.link`)).data;
+    return (await axios.get(`https://${cid}.ipfs.nftstorage.link`, {responseType: 'text'})).data;
+  }
+  
+  async loadJson(cid: string): Promise<any> {
+    return (await axios.get(`https://${cid}.ipfs.nftstorage.link`, {responseType: 'json'})).data;
   }
 }

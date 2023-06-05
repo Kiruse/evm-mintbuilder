@@ -1,2 +1,2 @@
-export * from './nft.storage'
-export * from './mock'
+export * from './nft.storage.js'
+export * from './mock.js'

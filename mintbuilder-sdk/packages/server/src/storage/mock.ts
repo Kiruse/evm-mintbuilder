@@ -3,8 +3,8 @@ import { unixfs, UnixFS } from '@helia/unixfs'
 import { createHelia } from 'helia'
 import { CID } from 'multiformats/cid'
 import type { CIDString } from 'nft.storage'
-import { Metadata } from '../types'
-import type { IIPFSStorage } from './interface'
+import { Metadata } from '../types.js'
+import type { IIPFSStorage } from './interface.js'
 
 export class MockStorage implements IIPFSStorage {
   #helia: Helia;
@@ -53,5 +53,9 @@ export class MockStorage implements IIPFSStorage {
   
   async loadText(cid: CIDString): Promise<string> {
     return new TextDecoder().decode(await this.load(cid));
+  }
+  
+  async loadJson(cid: CIDString): Promise<any> {
+    return JSON.parse(await this.loadText(cid));
   }
 }

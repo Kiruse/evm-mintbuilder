@@ -2,6 +2,7 @@
   "name": "@evm-mintbuilder/client",
   "version": "0.1.0",
   "description": "EVM MintBuilder frontend code for interacting with an on-chain MintBuilder contract and/or the permissioned backend server",
+  "type": "module",
   "main": "index.js",
   "repository": "https://github.com/kiruse/evm-mintbuilder.git",
   "author": "Kiruse",

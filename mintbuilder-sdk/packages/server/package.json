@@ -2,14 +2,19 @@
   "name": "@evm-mintbuilder/server",
   "version": "0.1.0",
   "description": "EVM MintBuilder backend code for permissioned minting & uploading of user-configured NFTs",
-  "main": "index.js",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "repository": "https://github.com/kiruse/evm-mintbuilder.git",
   "author": "Kiruse",
   "license": "Apache-2.0",
+  "engines": {
+    "node": "18"
+  },
   "scripts": {
     "build": "tsc -b",
-    "test": "dotenv mocha --require coffeescript/register --require source-map-support/register test/**/*.spec.coffee",
-    "pretest": "tsc -b"
+    "test": "dotenv mocha --require source-map-support/register test/**/*.spec.js",
+    "pretest": "rimraf test/**/*.spec.js && tsc -b && coffee -Mc test/"
   },
   "mocha": {
     "timeout": 10000,
@@ -26,14 +31,21 @@
     "object-hash": "^3.0.0"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@helia/dag-cbor": "^0.0.0",
+    "@helia/interface": "^1.1.1",
+    "@helia/unixfs": "^1.2.2",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
+    "@nomiclabs/hardhat-ethers": "^2",
+    "@types/chai-as-promised": "^7.1.5",
     "@types/mocha": "^10.0.1",
     "chai": "^4.3.7",
+    "chai-as-promised": "^7.1.1",
     "coffeescript": "^2.7.0",
     "dotenv": "^16.1.3",
     "hardhat": "^2.14.1",
+    "helia": "^1.2.1",
     "mocha": "^10.2.0",
+    "multiformats": "^11.0.2",
     "source-map-support": "^0.5.21",
     "typescript": "^5.0.4"
   },

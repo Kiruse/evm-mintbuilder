@@ -1,3 +1,5 @@
+require('@nomiclabs/hardhat-ethers')
+
 function env(key, defaultValue) {
   if (process.env[key] === undefined) {
     if (defaultValue === undefined)

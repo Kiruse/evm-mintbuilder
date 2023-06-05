@@ -1,6 +1,6 @@
-{expect} = require 'chai'
-{BigNumber} = require 'ethers'
-{Collection} = require '../dist/collection'
+import {expect} from 'chai'
+import {BigNumber} from 'ethers'
+import {Collection} from '../dist/collection.js'
 
 describe 'Collection', ->
   it 'adds layers', ->

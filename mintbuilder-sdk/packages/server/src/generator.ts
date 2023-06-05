@@ -7,20 +7,24 @@ import {
   SignerOrProvider,
   getCommitment,
 } from '@evm-mintbuilder/common'
-import { Event } from '@evm-mintbuilder/common/dist/events'
+import { Event } from '@evm-mintbuilder/common/dist/events.js'
 import axios from 'axios'
 import { BigNumber, BigNumberish, utils } from 'ethers'
 import Jimp from 'jimp'
-import { Blob, CIDString, NFTStorage } from 'nft.storage'
+import { Blob } from 'nft.storage'
 import hash from 'object-hash'
-import { CancellationError, DisconnectedError, NotConfiguredError, ShouldNotReachError, TxFailureError } from './errors'
-import { Metadata, MintResult } from './types'
-import { Attribute, Collection, Layer } from './collection'
-import { TraitLimitReachedError } from './errors'
+import { CancellationError, DisconnectedError, NotConfiguredError, ShouldNotReachError, TxFailureError } from './errors.js'
+import { Metadata, MintResult } from './types.js'
+import { Attribute, Collection, Layer } from './collection.js'
+import { TraitLimitReachedError } from './errors.js'
+import { tx } from './ethers-helpers.js'
+import { IIPFSStorage, StoreNFTResult } from './storage/interface.js'
+import { MockStorage, NFTStorageWrapper } from './storage/index.js'
 
 type Traits = Record<string, Attribute>
+type CIDString = string;
 
-export interface ArtGeneratorConfig {
+export interface GeneratorConfig {
   /** Address of the MintBuilder contract */
   contract: string;
   /** The signer resembling the admin of the minter contract */
@@ -33,22 +37,35 @@ export type MetadataStringGenerator = (collection: Collection, tokenId: bigint, 
 type GenerateEventParams = { tokenId: bigint, traits: Traits };
 
 /** Streamlines the whole process of generating NFT art through Hashlips' ArtEngine */
-export default class ArtGenerator {
+export class Generator {
   #signer: Signer;
-  #nftStorage: NFTStorage;
+  #storage: IIPFSStorage | undefined;
   #minter: IMintBuilder | undefined;
   #nft: IMintBuilderNFT | undefined;
   #collection: Collection | undefined;
   #minted: Record<string, Traits> = {};
+  #startTime = new Date();
+  #endTime = new Date();
   
   /** Simplified NFT name generator. You can always listen to `'generate::metadata'` event to fully control metadata. */
   generateName: MetadataStringGenerator = (config, tokenId) => `${config.name} #${tokenId}`
   /** Simplified NFT description generator. You can always listen to `'generate::metadata'` event to fully control metadata. */
   generateDescription: MetadataStringGenerator = () => '';
   
-  constructor(config: ArtGeneratorConfig) {
-    this.#nftStorage = new NFTStorage({ token: config.nftStorageSecret });
+  constructor(config: GeneratorConfig) {
     this.#signer = config.signer;
+  }
+  
+  static async create(config: GeneratorConfig) {
+    const gen = new Generator(config);
+    await gen.connect(config.contract);
+    
+    if (config.nftStorageSecret === 'TEST')
+      gen.#storage = await MockStorage.create();
+    else
+      gen.#storage = new NFTStorageWrapper(config.nftStorageSecret);
+    
+    return gen;
   }
   
   async connect(address: string) {
@@ -66,16 +83,6 @@ export default class ArtGenerator {
     }
   }
   
-  /** Get the Trait object by its name */
-  getTrait(trait: string) {
-    if (!this.#collection) throw new NotConfiguredError();
-    for (const layer of this.#collection.layers) {
-      if (trait in layer.attributes) {
-        return layer.attributes[trait];
-      }
-    }
-  }
-  
   /**
    * Check whether a mint has been queued. Should use this to restore an on-going mint from
    * chain/IPFS after a crash or so.
@@ -83,6 +90,17 @@ export default class ArtGenerator {
   isMintQueued() {
     if (!this.#minter) throw new DisconnectedError();
     return this.#minter.isMintQueued();
+  }
+  
+  isMintActive() {
+    if (!this.#minter) throw new DisconnectedError();
+    const now = new Date();
+    // startTime of 0 indicates the mint is active indefinitely (technically, until no more mints are possible)
+    if (this.#endTime.valueOf() === 0) {
+      return this.#startTime <= now;
+    } else {
+      return this.#startTime <= now && now <= this.#endTime;
+    }
   }
   
   /** Restore minting parameters from the blockchain. Can only restore which combinations & how many traits have already been minted. */
@@ -108,7 +126,7 @@ export default class ArtGenerator {
       
       // querying events from the blockchain can take a while, so we really don't wanna have to redo this
       for (const event of events) {
-        const traits = event.args[3].map(name => this.getTrait(name)) as Attribute[];
+        const traits = event.args[3].map(name => this.collection!.getTrait(name)) as Attribute[];
         if (traits.some(trait => !trait)) throw new ShouldNotReachError();
         
         // mark exact trait combination as minted by its hash
@@ -130,11 +148,22 @@ export default class ArtGenerator {
       this.#nft = MintBuilderNFT.connect(await this.#minter!.getNFTContract(), this.#signer);
     }
     
+    const getMintTimeframe = async() => {
+      const [startTime, endTime] = await Promise.all([
+        this.#minter!.startTime(),
+        this.#minter!.endTime(),
+      ]);
+      this.#startTime = new Date(startTime.toNumber());
+      this.#endTime   = new Date(endTime.toNumber());
+    }
+    
     await Promise.all([
       getBaseConfig(),
-      getMintedTraits(),
       getNFTContract(),
+      getMintTimeframe(),
     ]);
+    
+    await getMintedTraits();
     
     await this.onRestoreCollection.emit({}, this.#collection);
     return this;
@@ -151,7 +180,7 @@ export default class ArtGenerator {
   async createMintEvent(collection: Collection) {
     if (!this.#minter) throw new DisconnectedError();
     
-    const cid = await this.#nftStorage.storeBlob(new Blob([JSON.stringify(collection, null, 2)], {type: 'application/json'}));
+    const cid = await this.#storage!.storeBlob(new Blob([JSON.stringify(collection, null, 2)], {type: 'application/json'}));
     console.log('collection configuration stored on IPFS at', cid);
     if ((await this.onCreateCollection.before.emit(collection)).canceled) {
       console.info('createCollection cancelled');
@@ -159,13 +188,16 @@ export default class ArtGenerator {
     }
     
     this.#collection = collection;
+    this.#startTime = collection.startTime;
+    this.#endTime = collection.endTime;
     const traits =
       collection.layers.flatMap(
         layer => Object.values(layer.attributes).map(
           attr => ({trait: attr.name, limit: attr.limit})
         )
       );
-    await this.#minter.create(
+    
+    const {logs} = await tx(this.#minter, 'create',
       collection.name,
       collection.symbol,
       cid,
@@ -175,6 +207,8 @@ export default class ArtGenerator {
       collection.endTime.valueOf(),
       traits,
     );
+    if (!logs.find(log => log.name === 'CreateEvent'))
+      throw new Error('Failed to find CreateEvent event in transaction logs');
     
     await this.onCreateCollection.emit(collection, cid);
     return this;
@@ -192,6 +226,7 @@ export default class ArtGenerator {
     
     await this.#minter.stop();
     await this.onStopCollection.emit(this.#collection!);
+    this.#endTime = new Date();
     return this;
   }
   
@@ -206,6 +241,8 @@ export default class ArtGenerator {
     
     await this.#minter.restart(startTime.valueOf(), endTime.valueOf());
     await this.onRestartCollection.emit({ startTime, endTime }, this.#collection!);
+    this.#startTime = startTime;
+    this.#endTime = endTime;
     return this;
   }
   
@@ -214,21 +251,6 @@ export default class ArtGenerator {
     if (!this.#nft) throw new NotConfiguredError();
     return this.#nft!.connect(provider);
   }
-  
-  /** Get the configuration of layers in this mint event. Throws if no event is configured. */
-  getLayers() {
-    if (!this.#collection) throw new NotConfiguredError();
-    return this.#collection.layers;
-  }
-  
-  /** Get the configuration of traits in this mint event. Note that every trait belongs to exactly one layer. */
-  getTraits() {
-    const layers = this.getLayers();
-    return layers.flatMap(layer => Object.values(layer.attributes));
-  }
-  
-  /** Alias for `getTraits` */
-  getAttributes() { return this.getTraits() }
   
   /**
    * Generate & mint a single NFT with the given trait combination.
@@ -308,12 +330,9 @@ export default class ArtGenerator {
     if ((await this.onGenerateMetadata.emit({ tokenId, traits })).canceled)
       throw new CancellationError('generate metadata');
     
-    const token = await this.#nftStorage.store({
-      ...metadata,
-      image,
-    });
+    const token = await this.#storage!.storeNFT(image, metadata);
     
-    this.#minter!.setMetadata(tokenId, token.url);
+    this.#minter!.setMetadata(tokenId, token.cid);
     await this.onGenerate.emit(_params, token);
     return token;
   }
@@ -371,11 +390,18 @@ export default class ArtGenerator {
     if (found) throw new TraitLimitReachedError(found.name);
   }
   
+  get eventId() {
+    if (!this.#minter) throw new NotConfiguredError();
+    return this.#minter.eventId();
+  }
+  get collection() { return this.#collection }
+  get collectionId() { return this.eventId }
+  
   onCreateCollection  = Event.TwoPhase<Collection, CIDString>();
   onStopCollection    = Event.TwoPhase<Collection>();
   onRestartCollection = Event.TwoPhase<{ startTime: Date, endTime: Date }, Collection>();
   onRestoreCollection = Event.TwoPhase<{}, Collection>();
-  onGenerate          = Event.TwoPhase<GenerateEventParams, Awaited<ReturnType<NFTStorage['store']>>>();
+  onGenerate          = Event.TwoPhase<GenerateEventParams, StoreNFTResult>();
   onGenerateImage     = Event.TwoPhase<GenerateEventParams, Blob>();
   onGenerateMetadata  = Event.TwoPhase<GenerateEventParams, Metadata>();
   onMint              = Event.TwoPhase<{ wallet: string, traits: Traits }, bigint>();
