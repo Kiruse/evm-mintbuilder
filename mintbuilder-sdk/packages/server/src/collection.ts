@@ -1,7 +1,9 @@
 import { AddressZero } from '@ethersproject/constants'
-import type { BigNumberish } from 'ethers'
+import { BigNumber, BigNumberish } from 'ethers'
 import fs from 'fs/promises'
+import type { CIDString } from 'nft.storage'
 import path from 'path'
+import type { IIPFSStorage } from './storage/interface'
 import type { Vector } from './types'
 
 export class Collection {
@@ -9,7 +11,9 @@ export class Collection {
   mutuallyExclusive: Attribute[][] = [];
   feeToken = AddressZero;
   feeAmount: BigNumberish = 0;
+  /** Original `startTime` of this collection mint event. May differ from final `startTime` if you've manually stopped & restarted the event. */
   startTime = new Date();
+  /** Original `endTime` of this collection mint event. May differ from final `endTime` if you've manually stopped & restarted the event. */
   endTime = new Date(0);
   imageSize: Vector = [350, 350];
   
@@ -23,9 +27,10 @@ export class Collection {
     return layer;
   }
   
-  addMutuallyExclusive(...attributes: Attribute[]) {
-    attributes.sort((a, b) => a.layer.index - b.layer.index);
-    this.mutuallyExclusive.push(attributes);
+  addMutuallyExclusive(...attributes: (string | Attribute)[]) {
+    const attrs = attributes.map(attr => typeof attr === 'string' ? this.getAttribute(attr) : attr) as Attribute[];
+    attrs.sort((a, b) => a.layer.index - b.layer.index);
+    this.mutuallyExclusive.push(attrs);
     return this;
   }
   
@@ -42,6 +47,54 @@ export class Collection {
   hasTrait(name: string) { return this.hasAttribute(name) }
   hasAttribute(name: string) {
     return this.getTrait(name) !== undefined;
+  }
+  
+  /** Safe to IPFS */
+  async save(storage: IIPFSStorage): Promise<CIDString> {
+    const data = JSON.stringify(Collection.marshall(this));
+    return storage.storeBlob(new Blob([data], {type: 'application/json'}));
+  }
+  
+  static async load(storage: IIPFSStorage, cid: CIDString): Promise<Collection> {
+    return Collection.unmarshall(await storage.loadJson(cid));
+  }
+  
+  static marshall(collection: Collection) {
+    return {
+      name: collection.name,
+      symbol: collection.symbol,
+      layers: collection.layers.map(Layer.marshall),
+      mutuallyExclusive: collection.mutuallyExclusive.map(group => group.map(attr => attr.name)),
+      feeToken: collection.feeToken,
+      feeAmount: BigNumber.from(collection.feeAmount),
+      startTime: collection.startTime.toISOString(),
+      endTime: collection.endTime.toISOString(),
+      imageSize: collection.imageSize,
+    }
+  }
+  
+  static unmarshall(json: any): Collection {
+    const collection = new Collection(json.name, json.symbol);
+    
+    Object.assign(collection, {
+      feeToken: json.feeToken,
+      feeAmount: BigNumber.from(json.feeAmount),
+      startTime: new Date(json.startTime),
+      endTime: new Date(json.endTime),
+      imageSize: json.imageSize,
+    });
+    
+    for (let i = 0; i < json.layers.length; i++) {
+      const layer = Layer.unmarshall(json.layers[i], i, collection);
+      collection.layers.push(layer);
+    }
+    
+    for (const group of json.mutuallyExclusive) {
+      const attributes = group.map((name: string) => collection.getAttribute(name));
+      collection.mutuallyExclusive.push(attributes);
+    }
+    
+    return collection;
   }
 }
 
@@ -73,6 +126,26 @@ export class Layer {
     const nameParts = path.basename(filepath).split('.');
     return this.addAttribute(nameParts.join('.'), image, limit);
   }
+  
+  static marshall(layer: Layer) {
+    return {
+      name: layer.name,
+      offset: layer.offset,
+      size: layer.size,
+      attributes: Object.values(layer.attributes).map(Attribute.marshall),
+    };
+  }
+  
+  static unmarshall(json: any, index: number, collection: Collection) {
+    const layer = new Layer(collection, json.name, index, json.offset, json.size);
+    for (const attrJson of json.attributes) {
+      const attr = Attribute.unmarshall(attrJson, layer);
+      //@ts-ignore
+      collection._attrs[attr.name] = attr;
+      layer.attributes[attr.name] = attr;
+    }
+    return layer;
+  }
 }
 
 export class Attribute {
@@ -82,4 +155,16 @@ export class Attribute {
     public readonly image: Buffer,
     public limit: number,
   ) {}
+  
+  static marshall(attr: Attribute) {
+    return {
+      name: attr.name,
+      image: attr.image.toString('base64'),
+      limit: attr.limit,
+    }
+  }
+  
+  static unmarshall(json: any, layer: Layer) {
+    return new Attribute(json.name, layer, Buffer.from(json.image, 'base64'), json.limit);
+  }
 }
