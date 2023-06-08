@@ -26,10 +26,7 @@ describe 'ArtGenerator', ->
   fixtureBase = ->
     [deployer] = await ethers.getSigners()
     factory = new MintBuilder deployer
-    if env('TEST_ENV') is 'testnet'
-      minter = MintBuilder.connect MINTER_ADDRESS, deployer
-    else
-      minter = await factory.deploy()
+    minter = await factory.deploy()
     return {
       minter,
       deployer,

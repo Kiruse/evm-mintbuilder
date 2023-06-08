@@ -11,6 +11,7 @@ import { Attribute, Collection, MINT_INFINITY } from '@evm-mintbuilder/common/di
 import { Event } from '@evm-mintbuilder/common/dist/events.js'
 import { IIPFSStorage, StoreNFTResult } from '@evm-mintbuilder/common/dist/types.js'
 import { BigNumber, BigNumberish, utils } from 'ethers'
+import * as fs from 'fs/promises'
 import Jimp from 'jimp'
 import { Blob } from 'nft.storage'
 import hash from 'object-hash'
@@ -51,7 +52,7 @@ export class Generator {
   /** Simplified NFT description generator. You can always listen to `'generate::metadata'` event to fully control metadata. */
   generateDescription: MetadataStringGenerator = () => '';
   
-  constructor(config: GeneratorConfig) {
+  protected constructor(config: GeneratorConfig) {
     this.#signer = config.signer;
   }
   
@@ -357,14 +358,12 @@ export class Generator {
         const retraits = (await Promise.all(
           Object.values(traits).map(async ({image, ...attr}) => ({
             ...attr,
-            image: await Jimp.read(image),
+            image: (await Jimp.read(image)).resize(width, height),
           }))
         )).sort((a, b) => a.layer.index - b.layer.index);
         
         for (const trait of retraits) {
-          if (trait.image.getWidth() !== width || trait.image.getHeight() !== height)
-            trait.image.resize(width, height);
-          image.blit(trait.image, ...trait.layer.size);
+          image = image.blit(trait.image, ...trait.layer.offset);
         }
         
         const buffer = await image.getBufferAsync(Jimp.MIME_PNG);

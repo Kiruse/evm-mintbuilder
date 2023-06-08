@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsc -b",
     "test": "dotenv mocha --require source-map-support/register test/**/*.spec.js",
-    "pretest": "rimraf test/**/*.spec.js && tsc -b && coffee -Mc test/"
+    "pretest": "rimraf test/**/*.spec.js && tsc -b && coffee -Mc test/",
+    "test:generate": "tsc -b && coffee -Mo test/generate.mjs -c test/generate.coffee && node test/generate.mjs"
   },
   "mocha": {
     "timeout": 30000,

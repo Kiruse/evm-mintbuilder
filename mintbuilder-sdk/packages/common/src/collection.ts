@@ -122,9 +122,10 @@ export class Layer {
   }
   
   /** Load the attribute from the given filepath. Assumes the file name w/o the extension is the trait's name. */
-  async loadAttribute(filepath: string, limit = -1) {
+  async loadAttribute(filepath: string, limit = Infinity) {
     const image = await fs.readFile(filepath);
     const nameParts = path.basename(filepath).split('.');
+    nameParts.pop();
     return this.addAttribute(nameParts.join('.'), image, limit);
   }
   
