@@ -6,5 +6,5 @@
   "compilerOptions": {
     "outDir": "dist",
   },
-  "include": ["src/", "typings/"],
+  "include": ["src/", "typings/", "../common/src/collection.ts"],
 }

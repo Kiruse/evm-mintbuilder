@@ -1,5 +1,3 @@
-export type Vector = [number, number]
-
 /** NFT per-token metadata standard as defined by OpenSea. Note that this variant is limited to
  * `image` and does not support any of the other media types.
  */

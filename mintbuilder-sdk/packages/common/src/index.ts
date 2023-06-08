@@ -6,4 +6,4 @@ export {
   MintBuilderNFTFactory as MintBuilderNFT,
 } from './typechain/index.js'
 export * from './types.js'
-export { getCommitment } from './utils.js'
+export { getCommitment, getRandomNonce } from './utils.js'

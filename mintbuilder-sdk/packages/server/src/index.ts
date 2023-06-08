@@ -1,2 +1,2 @@
-export * from './collection.js'
+export * from '@evm-mintbuilder/common/src/collection.js'
 export * from './generator.js'

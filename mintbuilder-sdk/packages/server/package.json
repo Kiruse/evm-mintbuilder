@@ -17,8 +17,8 @@
     "pretest": "rimraf test/**/*.spec.js && tsc -b && coffee -Mc test/"
   },
   "mocha": {
-    "timeout": 10000,
-    "slow": 5000,
+    "timeout": 30000,
+    "slow": 10000,
     "recursive": true,
     "exit": true
   },

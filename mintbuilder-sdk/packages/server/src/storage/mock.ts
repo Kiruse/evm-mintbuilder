@@ -1,10 +1,10 @@
+import type { IIPFSStorage } from '@evm-mintbuilder/common/dist/types.js'
 import type { Helia } from '@helia/interface'
 import { unixfs, UnixFS } from '@helia/unixfs'
 import { createHelia } from 'helia'
 import { CID } from 'multiformats/cid'
 import type { CIDString } from 'nft.storage'
 import { Metadata } from '../types.js'
-import type { IIPFSStorage } from './interface.js'
 
 export class MockStorage implements IIPFSStorage {
   #helia: Helia;

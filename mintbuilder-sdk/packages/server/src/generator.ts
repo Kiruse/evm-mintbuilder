@@ -7,18 +7,17 @@ import {
   SignerOrProvider,
   getCommitment,
 } from '@evm-mintbuilder/common'
+import { Attribute, Collection, MINT_INFINITY } from '@evm-mintbuilder/common/dist/collection.js'
 import { Event } from '@evm-mintbuilder/common/dist/events.js'
-import axios from 'axios'
+import { IIPFSStorage, StoreNFTResult } from '@evm-mintbuilder/common/dist/types.js'
 import { BigNumber, BigNumberish, utils } from 'ethers'
 import Jimp from 'jimp'
 import { Blob } from 'nft.storage'
 import hash from 'object-hash'
 import { CancellationError, DisconnectedError, NotConfiguredError, ShouldNotReachError, TxFailureError } from './errors.js'
 import { Metadata, MintResult } from './types.js'
-import { Attribute, Collection, Layer, MINT_INFINITY } from './collection.js'
 import { TraitLimitReachedError } from './errors.js'
 import { tx } from './ethers-helpers.js'
-import { IIPFSStorage, StoreNFTResult } from './storage/interface.js'
 import { MockStorage, NFTStorageWrapper } from './storage/index.js'
 
 type Traits = Record<string, Attribute>
@@ -70,7 +69,7 @@ export class Generator {
   
   async connect(address: string) {
     this.#minter = MintBuilder.connect(address, this.#signer);
-    this.#nft = MintBuilderNFT.connect(await this.#minter.getNFTContract(), this.#signer);
+    this.#nft = MintBuilderNFT.connect(await this.#minter!.getNFTContract(), this.#signer);
     return this;
   }
   
@@ -120,7 +119,7 @@ export class Generator {
     
     // retrieve minted traits from blockchain
     const getMintedTraits = async() => {
-      const filter = this.#minter!.filters.Mint(null, this.#minter!.eventId());
+      const filter = this.#minter!.filters.Mint(null, await this.#minter!.eventId());
       const events = await this.#minter!.queryFilter(filter);
       
       // querying events from the blockchain can take a while, so we really don't wanna have to redo this
@@ -207,8 +206,8 @@ export class Generator {
       cid,
       collection.feeToken,
       collection.feeAmount,
-      collection.startTime.valueOf(),
-      collection.endTime.valueOf(),
+      Math.floor(collection.startTime.valueOf() / 1000),
+      Math.floor(collection.endTime.valueOf()   / 1000),
       traits,
     );
     if (!logs.find(log => log.name === 'CreateEvent'))
@@ -243,7 +242,10 @@ export class Generator {
       return this;
     }
     
-    await this.#minter.restart(startTime.valueOf(), endTime.valueOf());
+    await this.#minter.restart(
+      Math.floor(startTime.valueOf() / 1000),
+      Math.floor(endTime.valueOf() / 1000),
+    );
     await this.onRestartCollection.emit({ startTime, endTime }, this.#collection!);
     this.#startTime = startTime;
     this.#endTime = endTime;
@@ -254,6 +256,11 @@ export class Generator {
   getNFTContract(provider: SignerOrProvider) {
     if (!this.#nft) throw new NotConfiguredError();
     return this.#nft!.connect(provider);
+  }
+  
+  getMinter(provider: SignerOrProvider) {
+    if (!this.#minter) throw new NotConfiguredError();
+    return this.#minter!.connect(provider);
   }
   
   /**
@@ -268,27 +275,23 @@ export class Generator {
    * minted, forbidden, or invalid. In this case, the commitment is reverted and the user's funds
    * are returned.
    */
-  async mint(wallet: string, _traits: Traits, nonce: BigNumberish): Promise<MintResult> {
+  async mint(wallet: string, traits: Traits, nonce: BigNumberish): Promise<MintResult> {
     if (!this.#minter) throw new DisconnectedError();
     if (!this.#collection) throw new NotConfiguredError();
-    if (Object.keys(_traits).length !== this.#collection.layers.length) throw Error('invalid traits');
+    if (Object.keys(traits).length !== this.#collection.layers.length) throw Error('invalid traits');
     
-    if ((await this.onMint.before.emit({ wallet, traits: _traits })).canceled) {
+    if ((await this.onMint.before.emit({ wallet, traits })).canceled) {
       console.log('mint event cancelled');
       return { error: 'cancelled' };
     }
     
-    // build list of traits, sorted by layer index
-    const traits = this.#collection.layers
-      .map(layer => {
-        if (!(layer.name in _traits)) throw Error(`missing layer ${layer}`);
-        return [layer, _traits[layer.name]] as [Layer, Attribute];
-      })
-      .sort(([a], [b]) => a.index - b.index)
-      .map(([layer, trait]) => [layer.name, trait.name]) as [string, string][];
+    // must be sorted to prevent double-minting the same traits
+    const sortedTraits = Object.values(traits).sort((a, b) => a.layer.index - b.layer.index).map(trait => trait.name);
     
+    // verify user's commitment
     const commit = getCommitment(traits, nonce);
-    const tx = await this.#minter.mint(commit, traits.map(([_, trait]) => trait));
+    
+    const tx = await this.#minter.mint(commit, sortedTraits);
     const receipt = await tx.wait();
     if (!receipt.status) throw new TxFailureError(receipt);
     
@@ -300,7 +303,7 @@ export class Generator {
     const desc = this.#minter.interface.parseLog(log);
     const tokenId = BigNumber.from(desc.args.tokenId).toBigInt();
     
-    await this.onMint.emit({ wallet, traits: _traits }, tokenId);
+    await this.onMint.emit({ wallet, traits }, tokenId);
     return { tokenId };
   }
   

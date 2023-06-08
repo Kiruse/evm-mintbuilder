@@ -1,7 +1,7 @@
+import type { IIPFSStorage } from '@evm-mintbuilder/common/dist/types.js'
 import axios from 'axios'
 import { CIDString, NFTStorage } from 'nft.storage'
 import type { Metadata } from '../types.js'
-import type { IIPFSStorage } from './interface.js'
 
 export class NFTStorageWrapper implements IIPFSStorage {
   #instance: NFTStorage;
